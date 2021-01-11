@@ -367,6 +367,55 @@ void AcesRender::initialize ( const dataPath & dp ) {
     OUT.use_auto_wb       = 0;
 }
 
+
+void AcesRender::initialize ( ) {
+    _opts.use_bigfile        = 0;
+    _opts.use_timing         = 0;
+    _opts.use_illum          = 0;
+    _opts.use_mul            = 0;
+    _opts.verbosity          = 0;
+    _opts.mat_method         = matMethod0;
+    _opts.wb_method          = wbMethod0;
+    _opts.highlight          = 0;
+    _opts.scale              = 6.0;
+    _opts.highlight          = 0;
+    _opts.get_illums         = 0;
+    _opts.get_cameras        = 0;
+    _opts.get_libraw_cameras = 0;
+
+#ifndef WIN32
+    _opts.iobuffer = 0;
+#endif
+    const dataPath & dp = pathsFinder();
+    struct stat st;
+    FORI ( dp.paths.size() ) {
+        if ( !stat( (dp.paths)[i].c_str(), &st ) )
+            _opts.envPaths.push_back((dp.paths)[i]);
+    }
+
+#ifndef WIN32
+    _opts.msize = 0;
+    _opts.use_mmap=0;
+#endif
+
+#ifdef OUT
+#undef OUT
+#endif
+
+#define OUT _rawProcessor->imgdata.params
+
+    //  General set-up for _rawProcessor->imgdata.params
+    OUT.output_color      = 5;
+    OUT.output_bps        = 16;
+    OUT.highlight         = 0;
+//    OUT.use_camera_matrix = 0;
+    OUT.gamm[0]           = 1.0;
+    OUT.gamm[1]           = 1.0;
+    OUT.no_auto_bright    = 1;
+    OUT.use_camera_wb     = 0;
+    OUT.use_auto_wb       = 0;
+}
+
 //	=====================================================================
 //	Configure settings by taking in user specified options
 //
@@ -1019,6 +1068,25 @@ int AcesRender::preprocessRaw ( const char * path ) {
     return _opts.ret;
 }
 
+int AcesRender::preprocessRawBuffer(char* buffer, unsigned long buffer_size)
+{
+    if (( _opts.ret = _rawProcessor->open_buffer( (void*)buffer, buffer_size ) != LIBRAW_SUCCESS ))
+    {
+        fprintf ( stderr, "\nError: Cannot open_buffer: %s\n\n",
+                           libraw_strerror(_opts.ret) );
+        return _opts.ret;
+    }
+
+    if (( _opts.ret = _rawProcessor->unpack() ) != LIBRAW_SUCCESS )
+    {
+        fprintf ( stderr, "\nError: Cannot unpack buffer: %s\n\n",
+                           libraw_strerror (_opts.ret) );
+    }
+
+    return _opts.ret;
+}
+
+
 //  =====================================================================
 //  Postprocess the RAW file 
 //
@@ -1235,19 +1303,21 @@ float * AcesRender::renderACES ( ) {
 //	outputs:
 //      N/A        : An ACES file will be generated
 
-void AcesRender::outputACES ( ) {
+void AcesRender::outputACES ( const char* filename ) {
 #ifdef C
 #undef C
 #endif
 
-#define C   _rawProcessor->imgdata.color
-    
-    assert ( _pathToRaw != nullptr );
-    char * cp;
-    if (( cp = strrchr ( _pathToRaw, '.' ))) *cp = 0;
-    
+#define C  _rawProcessor->imgdata.color
     char outfn[1024];
-    snprintf( outfn, sizeof(outfn), "%s%s", _pathToRaw, "_aces.exr" );
+    if (!filename){
+        assert ( _pathToRaw != nullptr );
+        char * cp;
+        if (( cp = strrchr ( _pathToRaw, '.' ))) *cp = 0;
+        snprintf( outfn, sizeof(outfn), "%s%s", _pathToRaw, "_aces.exr" );
+    } else {
+        strcpy(outfn, filename);
+    }
     
     float * aces = renderACES();
     if ( _opts.verbosity > 1 ) {
@@ -1726,7 +1796,7 @@ const libraw_processed_image_t * AcesRender::getImageBuffer() const {
 //	outputs:
 //      Options   :  _opts will be returned
 
-const struct Option AcesRender::getSettings ( ) const {
+struct Option& AcesRender::getSettings ( ) {
     return _opts;
 }
 

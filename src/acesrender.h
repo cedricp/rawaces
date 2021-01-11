@@ -95,10 +95,12 @@ class AcesRender {
         int prepareIDT ( const libraw_iparams_t & P, float * M );
         int prepareWB ( const libraw_iparams_t & P );
         int preprocessRaw ( const char * path );
+        int preprocessRawBuffer(char* buffer, unsigned long buffer_size);
         int postprocessRaw ( );
-        void outputACES ( );
+        void outputACES ( const char*filename = NULL );
     
         void initialize ( const dataPath & dp );
+        void initialize ();
         void setPixels ( libraw_processed_image_t * image );
         void gatherSupportedIllums ();
         void gatherSupportedCameras ();
@@ -119,7 +121,7 @@ class AcesRender {
         const vector < vector < double > > getCATMatrix () const;
         const vector < double > getWB () const;
         const libraw_processed_image_t * getImageBuffer() const;
-        const struct Option getSettings ( ) const;
+        struct Option& getSettings ( );
 
     private:
         AcesRender();

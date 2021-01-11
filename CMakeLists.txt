@@ -189,7 +189,7 @@ add_subdirectory(lib)
 add_subdirectory(src)
 
 enable_testing()
-add_subdirectory(unittest)
+#add_subdirectory(unittest)
 
 # Add all targets to the build-tree export set
 # if ( WIN32 AND NOT CYGWIN )
