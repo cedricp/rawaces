@@ -1343,6 +1343,8 @@ void AcesRender::outputACES ( const char* filename ) {
     else
         acesWrite ( outfn, aces );
     
+    delete[] aces;
+
 #ifndef WIN32
     if ( _opts.use_mmap && _opts.iobuffer )
     {
