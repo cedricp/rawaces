@@ -5,6 +5,14 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_INSTALL_PREFIX}/share/CMake"
 include(ExternalProject)
 find_package( PkgConfig QUIET )
 
+find_package( OpenEXR )
+
+if(OpenEXR_FOUND)
+  message( STATUS "Found OpenEXR, version ${OpenEXR_VERSION}" )
+else()
+  message( STATUS "OpenEXR not found, you can brew it" )
+endif()
+
 find_package( IlmBase COMPONENTS Half QUIET )
 if(IlmBase_FOUND)
   message( STATUS "Found IlmBase, version ${IlmBase_VERSION}" )

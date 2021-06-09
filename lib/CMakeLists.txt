@@ -14,7 +14,8 @@ add_library( ${RAWTOACESIDTLIB} SHARED
 
 target_link_libraries( ${RAWTOACESIDTLIB} 
                        ${Boost_LIBRARIES}
-		                   ${CERES_LIBRARIES} )
+		               ${CERES_LIBRARIES}
+		               ${OPENEXR_LIBRARIES} )
 
 install(FILES
 	      define.h

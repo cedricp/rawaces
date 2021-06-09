@@ -109,6 +109,7 @@ class AcesRender {
         void applyIDT ( float * pixels, int bits, uint32_t total );
         void applyCAT ( float * pixels, int channel, uint32_t total );
         void acesWrite ( const char * name, float *  aces, float ratio = 1.0) const;
+        void writeEXR( const char * name, float *  aces, float ratio = 1.0) const;
     
         float * renderACES ();
         float * renderDNG ();

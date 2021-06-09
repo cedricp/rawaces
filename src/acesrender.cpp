@@ -53,6 +53,8 @@
 ///////////////////////////////////////////////////////////////////////////
 
 #include "acesrender.h"
+#include <OpenEXR/ImfHeader.h>
+#include <OpenEXR/ImfRgbaFile.h>
 
 //  =====================================================================
 //  Prepare the matching between string flags and single character flag
@@ -108,6 +110,10 @@ void create_key ( unordered_map < string, char >& keys ) {
 //
 //  outputs:
 //      N/A
+
+using namespace Imf_2_3;
+using namespace Imath_2_3;
+using namespace Iex_2_3;
 
 void usage ( const char *prog ) {
     printf ( "%s - convert RAW digital camera files to ACES\n", prog);
@@ -378,7 +384,6 @@ void AcesRender::initialize ( ) {
     _opts.wb_method          = wbMethod0;
     _opts.highlight          = 0;
     _opts.scale              = 6.0;
-    _opts.highlight          = 0;
     _opts.get_illums         = 0;
     _opts.get_cameras        = 0;
     _opts.get_libraw_cameras = 0;
@@ -908,7 +913,7 @@ int AcesRender::prepareIDT ( const libraw_iparams_t & P, float * M )
         fprintf( stderr, "\nError: No matching cameras found. "
                          "Please use other options for "
                          "\"--mat-method\" and/or \"--wb-method\".\n");
-        exit (-1);
+        return 1;
     }
 
     // loading training data (190 patches)
@@ -1338,10 +1343,10 @@ void AcesRender::outputACES ( const char* filename ) {
     if ( _opts.highlight > 0 ) {
         float ratio = ( *(std::max_element ( C.pre_mul, C.pre_mul+3)) /
                         *(std::min_element ( C.pre_mul, C.pre_mul+3)) );
-        acesWrite ( outfn, aces, ratio );
+        writeEXR ( outfn, aces, ratio );
     }
     else
-        acesWrite ( outfn, aces );
+    	writeEXR ( outfn, aces );
     
     delete[] aces;
 
@@ -1688,6 +1693,43 @@ void AcesRender::acesWrite ( const char * name, float *  aces, float ratio ) con
     delete [] halfIn;
     
     x.saveImageObject ( );
+}
+
+void AcesRender::writeEXR( const char * name, float *  aces, float ratio ) const
+{
+    uint16_t width     = _image->width;
+    uint16_t height    = _image->height;
+    uint8_t  channels  = _image->colors;
+    uint8_t  bits      = _image->bits;
+
+    Rgba *halfIn = new (std::nothrow) Rgba[height*width];
+
+    FORI ( channels * width * height ){
+        if ( bits == 8 )
+            aces[i] = (double) aces[i] * INV_255 * (_opts.scale) * ratio;
+        else if ( bits == 16 )
+            aces[i] = (double) aces[i] * INV_65535 * (_opts.scale) * ratio;
+    }
+
+    Rgba * tmp = halfIn;
+    FORI ( width * height ){
+		tmp->r = aces[0];
+		tmp->g = aces[1];
+		tmp->b = aces[2];
+    	if (channels == 3){
+			tmp->a = 1.0f;
+    	} else {
+    		tmp->a = aces[3];
+    	}
+    	tmp ++;
+    	aces += channels;
+    }
+
+    Compression compression_method = ZIP_COMPRESSION;
+	RgbaOutputFile file (name, width, height, WRITE_RGB, 1, V2f (0, 0), 1, INCREASING_Y, compression_method);
+	file.setFrameBuffer (halfIn, 1, width);
+	file.writePixels (height);
+	delete[] halfIn;
 }
 
 
