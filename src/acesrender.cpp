@@ -55,6 +55,7 @@
 #include "acesrender.h"
 #include <OpenEXR/ImfHeader.h>
 #include <OpenEXR/ImfRgbaFile.h>
+#include <ImfStringAttribute.h>
 
 //  =====================================================================
 //  Prepare the matching between string flags and single character flag
@@ -1287,12 +1288,12 @@ float * AcesRender::renderACES ( ) {
 #undef P
 #endif
     
-#define P _rawProcessor->imgdata.idata
+#define P _rawProcessor->imgdata
     
-    if ( !_rawProcessor->imgdata.params.output_color )
+    if ( !P.params.output_color )
         return renderIDT();
     else {
-        if ( P.dng_version )
+        if ( P.idata.dng_version )
             return renderDNG();
         else
             return renderNonDNG();
@@ -1308,12 +1309,14 @@ float * AcesRender::renderACES ( ) {
 //	outputs:
 //      N/A        : An ACES file will be generated
 
-void AcesRender::outputACES ( const char* filename ) {
+void AcesRender::outputACES ( const char* filename, std::vector< std::pair<std::string, std::string >> md ) {
 #ifdef C
 #undef C
 #endif
 
 #define C  _rawProcessor->imgdata.color
+#define P  _rawProcessor->imgdata.idata
+	_md = md;
     char outfn[1024];
     if (!filename){
         assert ( _pathToRaw != nullptr );
@@ -1343,10 +1346,10 @@ void AcesRender::outputACES ( const char* filename ) {
     if ( _opts.highlight > 0 ) {
         float ratio = ( *(std::max_element ( C.pre_mul, C.pre_mul+3)) /
                         *(std::min_element ( C.pre_mul, C.pre_mul+3)) );
-        writeEXR ( outfn, aces, ratio );
+        ACESEXRwrite ( outfn, aces, ratio );
     }
     else
-    	writeEXR ( outfn, aces );
+    	ACESEXRwrite ( outfn, aces );
     
     delete[] aces;
 
@@ -1695,7 +1698,7 @@ void AcesRender::acesWrite ( const char * name, float *  aces, float ratio ) con
     x.saveImageObject ( );
 }
 
-void AcesRender::writeEXR( const char * name, float *  aces, float ratio ) const
+void AcesRender::ACESEXRwrite( const char * name, float *  aces, float ratio ) const
 {
     uint16_t width     = _image->width;
     uint16_t height    = _image->height;
@@ -1726,7 +1729,14 @@ void AcesRender::writeEXR( const char * name, float *  aces, float ratio ) const
     }
 
     Compression compression_method = ZIP_COMPRESSION;
-	RgbaOutputFile file (name, width, height, WRITE_RGB, 1, V2f (0, 0), 1, INCREASING_Y, compression_method);
+    Header header (width, height, 1, V2f (0, 0), 1, INCREASING_Y, compression_method);
+	for (auto &md : _md){
+		header.insert(md.first.c_str(), Imf::StringAttribute(md.second.c_str()));
+	}
+	header.insert("Comment", Imf::StringAttribute("Converted with rawtoaces"));
+	header.insert("Colorspace", Imf::StringAttribute("ACES2065(AP0)"));
+	header.insert("Gamma", Imf::StringAttribute("Linear"));
+	RgbaOutputFile file (name, header, WRITE_RGB);
 	file.setFrameBuffer (halfIn, 1, width);
 	file.writePixels (height);
 	delete[] halfIn;

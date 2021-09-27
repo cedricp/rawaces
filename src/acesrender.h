@@ -97,7 +97,7 @@ class AcesRender {
         int preprocessRaw ( const char * path );
         int preprocessRawBuffer(char* buffer, unsigned long buffer_size);
         int postprocessRaw ( );
-        void outputACES ( const char*filename = NULL );
+        void outputACES ( const char*filename, std::vector< std::pair<std::string, std::string >> md );
     
         void initialize ( const dataPath & dp );
         void initialize ();
@@ -109,7 +109,7 @@ class AcesRender {
         void applyIDT ( float * pixels, int bits, uint32_t total );
         void applyCAT ( float * pixels, int channel, uint32_t total );
         void acesWrite ( const char * name, float *  aces, float ratio = 1.0) const;
-        void writeEXR( const char * name, float *  aces, float ratio = 1.0) const;
+        void ACESEXRwrite( const char * name, float *  aces, float ratio = 1.0) const;
     
         float * renderACES ();
         float * renderDNG ();
@@ -142,5 +142,6 @@ class AcesRender {
         vector < double > _wbv;
         vector < string > _illuminants;
         vector < string > _cameras;
+        std::vector< std::pair<std::string, std::string >> _md;
 };
 #endif

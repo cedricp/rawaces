@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
              timerprint ( "AcesRender::postprocessRaw()", raw );
         
         timerstart_timeval();
-        Render.outputACES ();
+        Render.outputACES (NULL, std::vector< std::pair<std::string, std::string >>());
         if ( opts.use_timing )
              timerprint( "AcesRender::outputACES()", raw);
 
